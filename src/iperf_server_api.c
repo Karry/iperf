@@ -109,6 +109,8 @@ iperf_accept(struct iperf_test *test)
     signed char rbuf = ACCESS_DENIED;
     socklen_t len;
     struct sockaddr_storage addr;
+    int optval;
+    socklen_t optlen = sizeof(optval);
 
     len = sizeof(addr);
     if ((s = accept(test->listener, (struct sockaddr *) &addr, &len)) < 0) {
@@ -133,6 +135,26 @@ iperf_accept(struct iperf_test *test)
 	if (test->server_affinity != -1) 
 	    if (iperf_setaffinity(test, test->server_affinity) != 0)
 		return -1;
+
+	// keep-alive
+        /* Set the option active */
+        optval = 1;
+        if(setsockopt(test->ctrl_sck, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
+            return -1;
+        }
+        optval = 4;
+        if(setsockopt(test->ctrl_sck, SOL_SOCKET, TCP_KEEPCNT, &optval, optlen) < 0) {
+            return -1;
+        }
+        optval = 60;
+        if(setsockopt(test->ctrl_sck, SOL_SOCKET, TCP_KEEPIDLE, &optval, optlen) < 0) {
+            return -1;
+        }
+        optval = 60;
+        if(setsockopt(test->ctrl_sck, SOL_SOCKET, TCP_KEEPINTVL, &optval, optlen) < 0) {
+            return -1;
+        }
+
         if (test->on_connect)
             test->on_connect(test);
     } else {
